@@ -1,12 +1,13 @@
 from typing import List
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException,File, UploadFile,Body
+import json
 from sqlalchemy.orm import Session
 import crud
 import models
 import schemas
 from database import SessionLocal, engine
 import uvicorn
-
+from pydantic import BaseModel
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
@@ -53,6 +54,27 @@ def create_item_for_user(
 def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     items = crud.get_items(db, skip=skip, limit=limit)
     return items
+
+
+class User(BaseModel):
+    name: str = "Toshi"
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate_to_json
+
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls(**json.loads(value))
+        return value
+
+@app.post("/uploadfile/")
+async def upload_file(user: User = Body(...), file: UploadFile = File(...)):
+    
+    return {"filename": file.filename, 'user': user}
+
+
 
 
 if __name__ == '__main__':
